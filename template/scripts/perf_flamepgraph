@@ -1,0 +1,47 @@
+#!/usr/bin/env zsh
+# scripts/perf_flamegraph
+OUTPUT_DIR="${PERF_OUTPUT_DIR:-profiling-results}"
+
+if [[ $# -ne 2 ]]; then
+  echo "Usage: $0 <command_to_profile> <record_name>"
+  echo "Example: $0 ./my_program test_run_1"
+  exit 1
+fi
+
+COMMAND_TO_PROFILE=$1
+EXPERIMENT_NAME=$2
+
+mkdir -p "$OUTPUT_DIR" || { echo "Error: Could not create output directory '$OUTPUT_DIR'"; exit 1; }
+
+TIMESTAMP=$(date +'%d_%m_%Y_%H:%M')
+BASE_FILENAME="${EXPERIMENT_NAME}_${TIMESTAMP}"
+PERF_DATA_FILE="${OUTPUT_DIR}/perf-${BASE_FILENAME}.data"
+FLAMEGRAPH_HTML_FILE="${OUTPUT_DIR}/flamegraph-${BASE_FILENAME}.html"
+PERF_SCRIPT_OUT="${OUTPUT_DIR}/out-${BASE_FILENAME}.perf"
+
+echo "Starting profiling for: $COMMAND_TO_PROFILE"
+echo "Experiment name: $EXPERIMENT_NAME"
+echo "Output perf data to: $PERF_DATA_FILE"
+echo "Output flamegraph to: $FLAMEGRAPH_HTML_FILE"
+
+perf record -g -o "$PERF_DATA_FILE" -- $COMMAND_TO_PROFILE
+
+if [[ $? -ne 0 ]]; then
+  echo "Error: perf record failed."
+  exit 1
+fi
+echo "Profiling finished. Data saved to $PERF_DATA_FILE"
+
+echo "Generating flamegraph..."
+perf script report flamegraph -i "$PERF_DATA_FILE" > "$FLAMEGRAPH_HTML_FILE"
+
+if [[ $? -ne 0 ]]; then
+  echo "Error: Failed to generate flamegraph."
+  rm -f "$PERF_SCRIPT_OUT"
+  exit 1
+fi
+
+rm -f "$PERF_SCRIPT_OUT"
+
+echo "Flamegraph generated successfully: $FLAMEGRAPH_HTML_FILE"
+echo "Done."

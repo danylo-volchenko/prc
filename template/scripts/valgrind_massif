@@ -1,0 +1,51 @@
+#!/usr/bin/env zsh
+# scripts/valgrind_massif
+
+OUTPUT_DIR="${VALGRIND_OUTPUT_DIR:-profiling-results}"
+
+if [[ $# -ne 1 ]]; then
+  echo "Usage: $0 <command_to_profile>"
+  echo "Example: $0 ./my_program"
+  exit 1
+fi
+COMMAND_TO_PROFILE=$1
+
+mkdir -p "${OUTPUT_DIR}" || { echo "Error: Could not create output directory '$OUTPUT_DIR'"; exit 1; }
+
+TIMESTAMP=$(date +'%d_%m_%Y_%H:%M')
+MASSIF_OUT_BASE="${OUTPUT_DIR}/massif_${TIMESTAMP}.out"
+
+read -q "ans?Remove previous massif.out files in '${OUTPUT_DIR}'? [Y/n] "
+echo
+if [[ "$ans" != "n" && "$ans" != "N" ]]; then
+    echo "Removing old massif output files..."
+    rm -f "${OUTPUT_DIR}/massif.out."
+fi
+
+echo "Running Valgrind Massif on: $COMMAND_TO_PROFILE"
+echo "Outputting data to files starting with: ${MASSIF_OUT_BASE}"
+
+\valgrind --tool=massif \
+    --massif-out-file="${MASSIF_OUT_BASE}" \
+    --time-unit=B \
+    --heap=yes \
+    --stacks=yes \
+    "$COMMAND_TO_PROFILE"
+
+if [[ $? -ne 0 ]]; then
+    echo "Error: Valgrind Massif failed."
+    exit 1
+fi
+
+MASSIF_OUT_FILE=$(ls -t "${MASSIF_OUT_BASE}."* | head -n 1)
+
+if [[ -z "$MASSIF_OUT_FILE" || ! -f "$MASSIF_OUT_FILE" ]]; then
+    echo "Error: Could not find Massif output file."
+    exit 1
+fi
+echo "Massif data saved to: $MASSIF_OUT_FILE"
+
+echo "Processing Massif data..."
+ms_print "$MASSIF_OUT_FILE" | less -R
+
+echo "Done."
