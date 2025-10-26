@@ -26,8 +26,8 @@ BUILD_DIR := ./build
 OBJ_FILES_DIR := objs
 TARGETS_DIR := target
 
-LOGFILE=log.txt
-DEBUG_LOGFILE=gdb.txt
+LOGFILE ?= log.txt
+DEBUG_LOGFILE ?= gdb.txt
 # ------------------------------------------------------------------------------
 # Base Compiler & Linker Flags
 # ------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ WFLAGS := -Wall -Wextra -Wpedantic -Werror
 DFLAGS := -O0 -ggdb3 -fno-omit-frame-pointer
 
 # Libraries
-LIBS := stdc++exp
+LIBS :=
 
 # Sanitizer definitions
 SANITIZE_UB := undefined shift alignment bounds enum return unreachable object-size null vptr
